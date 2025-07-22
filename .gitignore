@@ -1,0 +1,13 @@
+*.Rdata
+*.rds
+*.csv
+
+*.data
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+*.pdf
+*.png
+*.svg
