@@ -9,7 +9,7 @@ library(ggplot2)
 
 meta <- readRDS("data/cdi-metadata-pos_vid.rds") |> as_tibble()
 g <- readRDS("data/child_net_graph.rds") |> upgrade_graph()
-pure_growth <- readRDS("./pure_growth_v3.rds")
+pure_growth <- readRDS("./pure_growth_v4.rds")
 
 multisample <- function(n, x, fct, simplify2vec = FALSE) {
     k <- split(x, fct)
@@ -65,7 +65,7 @@ tmp <- with_progress(seq_len(niter) |>
     )
 )
 
-saveRDS(tmp, "pure-growth-ran-netstats.rds")
+saveRDS(tmp, "pure-growth-ran-netstats_v4.rds")
 
 
 # Uniform random sampling ----
@@ -101,7 +101,7 @@ ra_unif <- with_progress(seq_len(niter) |>
     )
 )
 
-saveRDS(ra_unif, "pure-growth-unif-ran-netstats_v3.rds")
+saveRDS(ra_unif, "pure-growth-unif-ran-netstats_v4.rds")
 #
 pure_growth$pure_growth[[1]]$loa[[1]]
 
@@ -137,7 +137,7 @@ pgnetstats[[1]]$loa
 tmp[[1]][[1]]$loa
 pure_growth$netstats[[1]]$loa
 
-saveRDS(pure_growth |> select(seed_ind, group, seed_type, netstats), "./pure_growth_netstats_v3.rds")
+saveRDS(pure_growth |> select(seed_ind, group, seed_type, netstats), "./pure_growth_netstats_v4.rds")
 
 
 # Summarize POS MATCHED RANs ----
@@ -175,7 +175,7 @@ pure_growth_netstats <- pure_growth$netstats |>
     )
 
 
-saveRDS(pure_growth_netstats, "./pure_growth_netstats_with_ran_z_v3.rds")
+saveRDS(pure_growth_netstats, "./pure_growth_netstats_with_ran_z_v4.rds")
 
 # Beyond this point is a mess... but it is where all the figures are being made
 tmpplot <- pure_growth_netstats |>
@@ -195,7 +195,7 @@ tmpplot <- pure_growth_netstats |>
         facet_wrap(~metric, scale="free_y") +
         theme_bw(base_size = 18)
 
-ggsave("tmpplot.pdf", tmpplot, width = 11, height = 4, unit = "in")
+ggsave("tmpplot_v4.pdf", tmpplot, width = 11, height = 4, unit = "in")
 
 
 xsim <- pure_growth_netstats |>
@@ -241,7 +241,7 @@ xkids <- readRDS("../asd-na_netstats-bs/data/asd-na_netstats-ran.rds") |>
     mutate(s = NA, model = "kid")
 
 
-saveRDS(xkids, "kids-netstats-ran-v3.rds")
+saveRDS(xkids, "kids-netstats-ran_v4.rds")
 
 tmpplot_kids <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     geom_point(data = xkids, color = "grey") +
@@ -251,7 +251,7 @@ tmpplot_kids <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     facet_wrap(~metric, scale="free_y") +
     theme_bw(base_size = 18)
 
-ggsave("tmpplot_kids.pdf", tmpplot_kids, width = 11, height = 4, unit = "in")
+ggsave("tmpplot_kids_v4.pdf", tmpplot_kids, width = 11, height = 4, unit = "in")
 
 tmpplot_kids_smooth <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     geom_point(data = xkids, color = "grey") +
@@ -262,5 +262,5 @@ tmpplot_kids_smooth <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     facet_wrap(~metric, scale="free_y") +
     theme_bw(base_size = 18)
 
-ggsave("puregrowth_unif-ran_kids_smooth.pdf", tmpplot_kids_smooth, width = 11, height = 4, unit = "in")
+ggsave("puregrowth_unif-ran_kids_smooth_v4.pdf", tmpplot_kids_smooth, width = 11, height = 4, unit = "in")
 

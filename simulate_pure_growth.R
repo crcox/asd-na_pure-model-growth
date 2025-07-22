@@ -7,7 +7,7 @@ library(progressr)
 library(igraph)
 library(ggplot2)
 
-source("./generate-seed-vocabularies.R")
+source("./R/generate-seed-vocabularies.R")
 
 # Load network of child-oriented associations ----
 g <- upgrade_graph(readRDS("data/child_net_graph.rds"))
@@ -20,7 +20,31 @@ adjmat <- as_adjacency_matrix(g)
 # 2 ASD     472
 meta <- readRDS("data/cdi-metadata-pos_vid.rds")
 
-cdi <- readRDS("data/asd-na_osg-2023_11_20-forms.rds") |>
+wb_to_ndar <- read_csv(
+    "data/wb-to-ndar.csv",
+    col_types = c(
+        word = col_character(),
+        ndar_item_id = col_integer(),
+        wb_item_id = col_integer()
+    )
+) |> mutate(across(ends_with("_id"), as.integer))
+
+cdi_bad_asd_id <- readRDS("data/asd-na_osg-2023_11_20-forms.rds") |>
+    mutate(num_item_id = as.integer(num_item_id)) |>
+    group_by(group)
+
+cdi_split <- group_split(cdi_bad_asd_id)
+names(cdi_split) <- group_keys(cdi_bad_asd_id) |> pull(group)
+
+
+cdi_asd_fixed_id <- cdi_split$ASD |>
+    left_join(wb_to_ndar |> select(num_item_id = ndar_item_id, wb_item_id), by = "num_item_id") |>
+    mutate(num_item_id = wb_item_id) |>
+    select(-wb_item_id)
+
+cdi_split$ASD <- cdi_asd_fixed_id
+
+cdi <- list_rbind(cdi_split) |>
     inner_join(meta, by = "num_item_id") |>
     group_by(group, word)
 
@@ -103,7 +127,7 @@ seed_vocabs <- rename(seed_vocabs, seed_vocab = data)
 seed_vocabs$pure_growth <- seed_vocabs$pure_growth |>
     map_depth(.depth=3, ~ left_join(.x, select(meta, ind=vid, pos), by="ind"), .progress=TRUE)
 
-saveRDS(seed_vocabs, "pure_growth_v3.rds")
-saveRDS(within_group_diffs, "seed_vocabs_within_group_diffs_v3.rds")
-saveRDS(between_group_diffs, "seed_vocabs_between_group_diffs_v3.rds")
+saveRDS(seed_vocabs, "pure_growth_v4.rds")
+saveRDS(within_group_diffs, "seed_vocabs_within_group_diffs_v4.rds")
+saveRDS(between_group_diffs, "seed_vocabs_between_group_diffs_v4.rds")
 
