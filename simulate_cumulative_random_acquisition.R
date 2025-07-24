@@ -20,56 +20,56 @@ multisample <- function(n, x, fct, simplify2vec = FALSE) {
 
 future::plan("multicore")
 
-# POS matched sampling ----
-niter <- 1000
-tmp <- with_progress(seq_len(niter) |>
-    future_map(function(iter, data, g, meta, p) {
-        map(data, function(x_seed, g, meta, p) {
-            p()
-            map(x_seed, function(x_model, g, meta) {
-                selected <- logical(vcount(g))
-                netstats <- tibble(
-                    nproduced = integer(length(x_model)),
-                    indegree = numeric(length(x_model)),
-                    clustcoef = numeric(length(x_model)),
-                    aspl = numeric(length(x_model))
-                )
-                for (i in seq_along(x_model)) {
-                    z <- !selected
-                    pos_count <- table(x_model[[i]]$pos)
-                    vid_sample <- multisample(pos_count, meta$vid[z], meta$pos[z]) |>
-                        unlist()
-                    selected[vid_sample] <- TRUE
-                    vid_vocab <- which(selected)
-                    g_vocab <- induced_subgraph(g, vid_vocab)
-                    netstats$nproduced[i] <- sum(selected)
-                    netstats$indegree[i] <- median(degree(g_vocab, mode = "in"))
-                    netstats$clustcoef[i] <- transitivity(g_vocab, type = "global")
-                    netstats$aspl[i] <- mean_distance(g_vocab)
-                }
-                return(netstats)
-            },
-            g = g,
-            meta = meta)
-        },
-        g = g,
-        meta = meta,
-        p = p
-        )
-    },
-    data = pure_growth$pure_growth,
-    g = g,
-    meta = meta,
-    p = progressor(niter * 200),
-    .options = furrr_options(seed = TRUE)
-    )
-)
-
-saveRDS(tmp, "pure-growth-ran-netstats_v4.rds")
+# # POS matched sampling ----
+# niter <- 100
+# tmp <- with_progress(seq_len(niter) |>
+#     future_map(function(iter, data, g, meta, p) {
+#         map(data, function(x_seed, g, meta, p) {
+#             p()
+#             map(x_seed, function(x_model, g, meta) {
+#                 selected <- logical(vcount(g))
+#                 netstats <- tibble(
+#                     nproduced = integer(length(x_model)),
+#                     indegree = numeric(length(x_model)),
+#                     clustcoef = numeric(length(x_model)),
+#                     aspl = numeric(length(x_model))
+#                 )
+#                 for (i in seq_along(x_model)) {
+#                     z <- !selected
+#                     pos_count <- table(x_model[[i]]$pos)
+#                     vid_sample <- multisample(pos_count, meta$vid[z], meta$pos[z]) |>
+#                         unlist()
+#                     selected[vid_sample] <- TRUE
+#                     vid_vocab <- which(selected)
+#                     g_vocab <- induced_subgraph(g, vid_vocab)
+#                     netstats$nproduced[i] <- sum(selected)
+#                     netstats$indegree[i] <- median(degree(g_vocab, mode = "in"))
+#                     netstats$clustcoef[i] <- transitivity(g_vocab, type = "global")
+#                     netstats$aspl[i] <- mean_distance(g_vocab)
+#                 }
+#                 return(netstats)
+#             },
+#             g = g,
+#             meta = meta)
+#         },
+#         g = g,
+#         meta = meta,
+#         p = p
+#         )
+#     },
+#     data = pure_growth$pure_growth,
+#     g = g,
+#     meta = meta,
+#     p = progressor(niter * 200),
+#     .options = furrr_options(seed = TRUE)
+#     )
+# )
+# 
+# saveRDS(tmp, "pure-growth-ran-netstats_v4.rds")
 
 
 # Uniform random sampling ----
-niter <- 10000
+niter <- 1000
 ra_unif <- with_progress(seq_len(niter) |>
     future_map(function(iter, g, p) {
         p()
@@ -101,11 +101,10 @@ ra_unif <- with_progress(seq_len(niter) |>
     )
 )
 
-saveRDS(ra_unif, "pure-growth-unif-ran-netstats_v4.rds")
-#
+saveRDS(ra_unif, "pure-growth-unif-ran-netstats_v4-100iter.rds")
+
 pure_growth$pure_growth[[1]]$loa[[1]]
 
-#pure_growth$netstats <- pure_growth$pure_growth |>
 pure_growth$netstats <- pure_growth$pure_growth |>
     future_map(function(x_seed, g, p) {
         map(x_seed, function(x_model, g, p) {
@@ -133,24 +132,22 @@ pure_growth$netstats <- pure_growth$pure_growth |>
     }, g = g, p = progressor(600)) |> with_progress()
 
 
-pgnetstats[[1]]$loa
-tmp[[1]][[1]]$loa
 pure_growth$netstats[[1]]$loa
 
 saveRDS(pure_growth |> select(seed_ind, group, seed_type, netstats), "./pure_growth_netstats_v4.rds")
 
 
 # Summarize POS MATCHED RANs ----
-pure_growth_ran_netstats_summary <- tmp |>
-    map(function(x_iter) {
-        map(x_iter, function(x_seed) {
-            list_rbind(x_seed, names_to = "model") |> mutate(model = as.factor(model))
-        }) |> list_rbind(names_to = "seed_ind")
-    }) |> list_rbind(names_to = "iter") |>
-    group_by(seed_ind, model, nproduced) |>
-    summarize(across(c(indegree, clustcoef, aspl), list(mean_ran = mean, sd_ran = sd))) |>
-    ungroup()
-
+# pure_growth_ran_netstats_summary <- tmp |>
+#     map(function(x_iter) {
+#         map(x_iter, function(x_seed) {
+#             list_rbind(x_seed, names_to = "model") |> mutate(model = as.factor(model))
+#         }) |> list_rbind(names_to = "seed_ind")
+#     }) |> list_rbind(names_to = "iter") |>
+#     group_by(seed_ind, model, nproduced) |>
+#     summarize(across(c(indegree, clustcoef, aspl), list(mean_ran = mean, sd_ran = sd))) |>
+#     ungroup()
+# 
 
 
 # Summarize UNIFORM RANs ----
@@ -177,6 +174,7 @@ pure_growth_netstats <- pure_growth$netstats |>
 
 saveRDS(pure_growth_netstats, "./pure_growth_netstats_with_ran_z_v4.rds")
 
+
 # Beyond this point is a mess... but it is where all the figures are being made
 tmpplot <- pure_growth_netstats |>
     drop_na() |>
@@ -195,7 +193,7 @@ tmpplot <- pure_growth_netstats |>
         facet_wrap(~metric, scale="free_y") +
         theme_bw(base_size = 18)
 
-ggsave("tmpplot_v4.pdf", tmpplot, width = 11, height = 4, unit = "in")
+ggsave("figures/tmpplot_v4.pdf", tmpplot, width = 11, height = 4, unit = "in")
 
 
 xsim <- pure_growth_netstats |>
@@ -251,7 +249,7 @@ tmpplot_kids <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     facet_wrap(~metric, scale="free_y") +
     theme_bw(base_size = 18)
 
-ggsave("tmpplot_kids_v4.pdf", tmpplot_kids, width = 11, height = 4, unit = "in")
+ggsave("figures/tmpplot_kids_v4.pdf", tmpplot_kids, width = 11, height = 4, unit = "in")
 
 tmpplot_kids_smooth <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     geom_point(data = xkids, color = "grey") +
@@ -262,5 +260,66 @@ tmpplot_kids_smooth <- ggplot(xsim, aes(x = nproduced, y = m, color = model)) +
     facet_wrap(~metric, scale="free_y") +
     theme_bw(base_size = 18)
 
-ggsave("puregrowth_unif-ran_kids_smooth_v4.pdf", tmpplot_kids_smooth, width = 11, height = 4, unit = "in")
+ggsave("figures/puregrowth_unif-ran_kids_smooth_v4.pdf", tmpplot_kids_smooth, width = 11, height = 4, unit = "in")
 
+
+## Similarity
+
+pure_growth$pure_growth_tbl <- map(pure_growth$pure_growth, ~ {
+    map(.x, ~ list_rbind(.x, names_to = "vocab_step")) |>
+    list_rbind(names_to = "model")
+})
+
+pairwise_list_cmp_ix <- function(x) {
+    ix <- combn(length(x), 2)
+    y <- numeric(ncol(ix))
+    for (i in seq_len(ncol(ix))) {
+        y[i] <- mean(x[[ix[1, i]]] %in% x[[ix[2, i]]])
+    }
+    y
+}
+
+pairwise_list_cmp <- function(x) {
+    x <- matrix(unlist(x), ncol = length(x))
+    k <- ncol(x)
+    y <- numeric((k^2 - k) / 2)
+    a <- 0
+    b <- 0
+    for (i in seq_len(k - 1)) {
+        a <- b + 1
+        b <- b + (k - i)
+        y[a:b] <- colMeans(matrix(x[, (i+1):k] %in% x[, i], ncol = k-i))
+    }
+    y
+}
+
+xx <- pure_growth |>
+    ungroup() |>
+    filter(group == "NA") |>
+    select(-seed_vocab, -pure_growth, -netstats) |>
+    unnest(pure_growth_tbl)
+
+xxx <- xx |>
+    select(-group) |>
+    nest(data = c(ind, word, pos, seed_type), .by = c(model, vocab_step, seed_ind)) |>
+    nest(data = c(data), .by = c(model, vocab_step)) |>
+    mutate(data = map(data, ~ pairwise_list_cmp(.x$data)))
+
+
+xxxx <- pmap(xxx, \(model, vocab_step, data) {
+    tibble(model = model, vocab_step = vocab_step, overlap_m = mean(data), overlap_s = sd(data))
+}) |> list_rbind()
+
+
+plot_overlap <- ggplot(xxxx, aes(x = vocab_step, y = overlap_m, color = model)) +
+    geom_ribbon(aes(ymin = overlap_m - overlap_s, ymax = overlap_m + overlap_s, fill = model), alpha = .3, color = NA) +
+    geom_line() +
+    theme_bw(base_size = 11)
+
+ggsave(
+   "figures/puregrowth_overlap_among_seeds_by_step_v4.pdf",
+   plot_overlap + theme(legend.position = "none"),
+   width = 3.25,
+   height = 3,
+   unit = "in"
+)
